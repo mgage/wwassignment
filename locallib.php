@@ -95,7 +95,6 @@ function _wwassignment_get_course_students($courseid) {
 */
 
 function _wwassignment_create_events($wwassignment,$wwsetdata ) {
-    //global $COURSE;
     global $CFG;
     require_once("$CFG->dirroot/calendar/lib.php");
 	traceLog("-----------------------Begin _wwassignment_create_events ---------------");
@@ -670,14 +669,15 @@ class wwassignment_client {
             $class = get_class($this);
             if (!array_key_exists($class, $instances)) {
                 // does not yet exist, save in array
-#                $this->client = new SoapClient($CFG->wwassignment_rpc_wsdl,'wsdl');
+				debugLog("getting connection<br/>");
                 $this->client = soap_connect($CFG->wwassignment_rpc_wsdl);
-#                $err = $this->client->getError();
-#                if ($err) {
-#                    error_log($err);
-#                    error_log($CFG->wwassignment_rpc_wsdl);
-#                    print_error('construction_error','wwassignment');
-#                }
+                debugLog("completed connection attempt<br/>");
+				debugLog("type" . get_class(($this->client))."<br/>");
+                if (($this->client) instanceof SoapFault) {  //instanceof SoapFault
+                    error_log($this->client->getMessage);
+                    error_log($CFG->wwassignment_rpc_wsdl);
+                    print_error('construction_error','wwassignment');
+                }
                 $this->defaultparams = array();
                 $this->defaultparams['authenKey']  = $CFG->wwassignment_rpc_key;
                 $this->datacache = array(); 
@@ -704,20 +704,18 @@ class wwassignment_client {
                 if(!$override) {
                         $params = array_merge($this->defaultparams,$params);
                 }
-                if(WWASSIGNMENT_DEBUG) {
-                    echo "Handler called: $functioncall <br>";
-                    echo "Params: ";
-                    var_dump($params);
-                    echo "<br>"; 
-                }
-                $result = $this->client->__soapCall($functioncall,$params);
-                debugLog("result is ".print_r($result, true));
-                // FIXME what does call_user_func array do?);
-//                 $result = call_user_func_array(array(&$this->client,$functioncall),$params);
-//                 if($err = $this->client->getError()) {
-//                         //print_error(get_string("rpc_fault","wwassignment') . " " . $functioncall. " ". $err);
-//                         print_error('rpc_error','wwassignment');  
-//                 }
+
+                    debugLog( "Handler called: $functioncall <br>");
+                    debugLog( "Params: ");
+                    debugLog(print_r($params,true));
+                    debugLog( "<br>"); 
+
+                $result = soap_call($this->client, $functioncall,$params);
+
+					debugLog("result<br/><pre>");
+					debugLog(print_r($result,true));
+					debugLog( "</pre><br>");
+
                 return $result;
         }
         
